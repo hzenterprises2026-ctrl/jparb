@@ -1,0 +1,83 @@
+function App() {
+  // Start with an empty array or fallback mock data
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const [minMargin, setMinMargin] = useState(20);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  // 1. Function to call your live Puppeteer/Scraper backend
+  const fetchLiveListings = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Replace with your actual live Render/Railway URL when deployed
+      const BACKEND_URL = 'https://pyeprofit-backend.onrender.com/api/scrape-johnpye';
+      
+      const response = await fetch(BACKEND_URL);
+      if (!response.ok) throw new Error('Failed to reach scraper server');
+      
+      const result = await response.json();
+      
+      if (result.success && result.data.length > 0) {
+        // 2. Overwrite state with live auction results
+        setListings(result.data);
+      } else {
+        throw new Error('No active auction data returned.');
+      }
+    } catch (err) {
+      console.warn('Backend unavailable, showing fallback data:', err.message);
+      setError(err.message);
+      // Fallback to static data if server is offline or building
+      setListings(initialListings);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Trigger API fetch automatically when page loads
+  useEffect(() => {
+    fetchLiveListings();
+  }, []);
+
+  return (
+    <div className="min-h-screen p-6 max-w-7xl mx-auto">
+      {/* Header with Refresh Button */}
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+        <div>
+          <h1 className="text-3xl font-bold text-emerald-400 flex items-center gap-2">
+            <span>⚡ PyeProfit</span>
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">John Pye Auctions ➔ eBay Arbitrage Dashboard</p>
+        </div>
+        
+        <div className="mt-4 md:mt-0 flex items-center gap-4">
+          <button 
+            onClick={fetchLiveListings} 
+            disabled={loading}
+            className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2"
+          >
+            {loading ? 'Refreshing...' : '🔄 Sync Live Auctions'}
+          </button>
+        </div>
+      </header>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700 mb-6">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mb-2"></div>
+          <p className="text-slate-300 text-sm">Scraping live John Pye auction lots & fetching eBay prices...</p>
+        </div>
+      )}
+
+      {/* Main Grid Render */}
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+          {/* Card mapping goes here */}
+        </div>
+      )}
+    </div>
+  );
+}
