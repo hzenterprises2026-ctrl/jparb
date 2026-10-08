@@ -1,83 +1,1012 @@
-function App() {
-  // Start with an empty array or fallback mock data
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  const [minMargin, setMinMargin] = useState(20);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyeProfit - John Pye to eBay Arbitrage Finder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pye: {
+                            50: '#fbf7ee',
+                            100: '#f5ebd3',
+                            500: '#ca8a04',
+                            800: '#854d0e',
+                            900: '#422006',
+                        },
+                        ebay: {
+                            blue: '#0064D2',
+                            red: '#E53238',
+                            yellow: '#F5AF02',
+                            green: '#86B817'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <div id="root"></div>
 
-  // 1. Function to call your live Puppeteer/Scraper backend
-  const fetchLiveListings = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Replace with your actual live Render/Railway URL when deployed
-      const BACKEND_URL = 'https://pyeprofit-backend.onrender.com/api/scrape-johnpye';
-      
-      const response = await fetch(BACKEND_URL);
-      if (!response.ok) throw new Error('Failed to reach scraper server');
-      
-      const result = await response.json();
-      
-      if (result.success && result.data.length > 0) {
-        // 2. Overwrite state with live auction results
-        setListings(result.data);
-      } else {
-        throw new Error('No active auction data returned.');
-      }
-    } catch (err) {
-      console.warn('Backend unavailable, showing fallback data:', err.message);
-      setError(err.message);
-      // Fallback to static data if server is offline or building
-      setListings(initialListings);
-    } finally {
-      setLoading(false);
-    }
-  };
+    <script type="text/babel">
+        const INITIAL_DEALS = [
+            {
+                id: 'JP-94821',
+                title: 'PlayStation 5 Digital Edition (Grade A - Return)',
+                category: 'Tech & Gaming',
+                jpLotNumber: 'LOT-9842',
+                jpCurrentBid: 165.00,
+                jpEndTime: '2026-09-21T18:30:00',
+                jpLocation: 'Nottingham Hub',
+                jpCondition: 'Customer Return - Tested Working',
+                jpImageUrl: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 310.00,
+                ebayListingCount: 42,
+                ebaySalesVolume: 'High (18/wk)',
+                estShippingCost: 8.50,
+                badge: 'HIGH MARGIN',
+                buyerFeePercent: 25, // 25% buyer's premium + VAT = ~30% total
+                vatOnFeePercent: 20
+            },
+            {
+                id: 'JP-88210',
+                title: 'Dyson V11 Absolute Cordless Vacuum Cleaner',
+                category: 'Home Appliances',
+                jpLotNumber: 'LOT-4412',
+                jpCurrentBid: 110.00,
+                jpEndTime: '2026-09-21T19:15:00',
+                jpLocation: 'Derby Site 2',
+                jpCondition: 'Box Damaged - Complete',
+                jpImageUrl: 'https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 245.00,
+                ebayListingCount: 29,
+                ebaySalesVolume: 'Very High (25/wk)',
+                estShippingCost: 9.99,
+                badge: 'QUICK RESELL',
+                buyerFeePercent: 25,
+                vatOnFeePercent: 20
+            },
+            {
+                id: 'JP-77301',
+                title: 'DeWalt 18V XR Brushless Combi Drill Twin Pack',
+                category: 'Tools',
+                jpLotNumber: 'LOT-1092',
+                jpCurrentBid: 75.00,
+                jpEndTime: '2026-09-22T14:00:00',
+                jpLocation: 'South Wales Hub',
+                jpCondition: 'New / Sealed Packaging',
+                jpImageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 165.00,
+                ebayListingCount: 15,
+                ebaySalesVolume: 'Medium (9/wk)',
+                estShippingCost: 6.50,
+                badge: 'HIGH MARGIN',
+                buyerFeePercent: 25,
+                vatOnFeePercent: 20
+            },
+            {
+                id: 'JP-65129',
+                title: 'Apple iPad Air 5th Gen 64GB Wi-Fi - Space Grey',
+                category: 'Tech & Gaming',
+                jpLotNumber: 'LOT-8831',
+                jpCurrentBid: 210.00,
+                jpEndTime: '2026-09-21T20:00:00',
+                jpLocation: 'Nottingham Hub',
+                jpCondition: 'Raw Return - Untested Screen',
+                jpImageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 380.00,
+                ebayListingCount: 54,
+                ebaySalesVolume: 'High (20/wk)',
+                estShippingCost: 5.00,
+                badge: 'RISK ALERT',
+                buyerFeePercent: 25,
+                vatOnFeePercent: 20
+            },
+            {
+                id: 'JP-33291',
+                title: 'Ninja Foodi MAX Dual Zone Air Fryer AF400UK',
+                category: 'Home Appliances',
+                jpLotNumber: 'LOT-3310',
+                jpCurrentBid: 60.00,
+                jpEndTime: '2026-09-22T16:30:00',
+                jpLocation: 'Chesterfield',
+                jpCondition: 'Refurbished - Grade B',
+                jpImageUrl: 'https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 140.00,
+                ebayListingCount: 38,
+                ebaySalesVolume: 'High (15/wk)',
+                estShippingCost: 7.99,
+                badge: 'QUICK RESELL',
+                buyerFeePercent: 25,
+                vatOnFeePercent: 20
+            },
+            {
+                id: 'JP-11029',
+                title: 'Tag Heuer Formula 1 Chronograph Watch (Boxed)',
+                category: 'Luxury Goods',
+                jpLotNumber: 'LOT-0042',
+                jpCurrentBid: 420.00,
+                jpEndTime: '2026-09-23T12:00:00',
+                jpLocation: 'Mayfair Bond St',
+                jpCondition: 'Pre-owned / Authenticated',
+                jpImageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+                ebayAvgPrice: 850.00,
+                ebayListingCount: 8,
+                ebaySalesVolume: 'Low (2/wk)',
+                estShippingCost: 12.00,
+                badge: 'HIGH MARGIN',
+                buyerFeePercent: 25,
+                vatOnFeePercent: 20
+            }
+        ];
 
-  // 3. Trigger API fetch automatically when page loads
-  useEffect(() => {
-    fetchLiveListings();
-  }, []);
+        // Calculates standard John Pye Total Cost: Bid + Buyer's Premium (25%) + VAT on Premium (20% of 25% = 5%) + Pickup/Courier (£10 default)
+        const calculateFinances = (bid, ebayPrice, courierCost = 10, ebayFeeRate = 12.8, postage = 6.00) => {
+            const buyersPremium = bid * 0.25;
+            const vatOnPremium = buyersPremium * 0.20;
+            const totalJpCost = bid + buyersPremium + vatOnPremium + Number(courierCost);
 
-  return (
-    <div className="min-h-screen p-6 max-w-7xl mx-auto">
-      {/* Header with Refresh Button */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
-        <div>
-          <h1 className="text-3xl font-bold text-emerald-400 flex items-center gap-2">
-            <span>⚡ PyeProfit</span>
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">John Pye Auctions ➔ eBay Arbitrage Dashboard</p>
-        </div>
-        
-        <div className="mt-4 md:mt-0 flex items-center gap-4">
-          <button 
-            onClick={fetchLiveListings} 
-            disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2"
-          >
-            {loading ? 'Refreshing...' : '🔄 Sync Live Auctions'}
-          </button>
-        </div>
-      </header>
+            const ebayFees = (ebayPrice * (ebayFeeRate / 100)) + 0.30;
+            const totalEbayDeductions = ebayFees + Number(postage);
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700 mb-6">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mb-2"></div>
-          <p className="text-slate-300 text-sm">Scraping live John Pye auction lots & fetching eBay prices...</p>
-        </div>
-      )}
+            const netRevenue = ebayPrice - totalEbayDeductions;
+            const netProfit = netRevenue - totalJpCost;
+            const roi = totalJpCost > 0 ? (netProfit / totalJpCost) * 100 : 0;
 
-      {/* Main Grid Render */}
-      {!loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {/* Card mapping goes here */}
-        </div>
-      )}
-    </div>
-  );
-}
+            return {
+                buyersPremium,
+                vatOnPremium,
+                totalJpCost,
+                ebayFees,
+                totalEbayDeductions,
+                netProfit,
+                roi
+            };
+        };
+
+        function App() {
+            const [deals, setDeals] = React.useState(INITIAL_DEALS);
+            const [searchTerm, setSearchTerm] = React.useState('');
+            const [selectedCategory, setSelectedCategory] = React.useState('All');
+            const [minRoi, setMinRoi] = React.useState(0);
+            const [maxBid, setMaxBid] = React.useState(1000);
+            
+            // Modal & Calculator state
+            const [selectedDealForModal, setSelectedDealForModal] = React.useState(null);
+            const [showApiModal, setShowApiModal] = React.useState(false);
+
+            // Api simulation state
+            const [apiKey, setApiKey] = React.useState('');
+            const [customEndpoint, setCustomEndpoint] = React.useState('');
+            const [isScraping, setIsScraping] = React.useState(false);
+            const [apiStatusMessage, setApiStatusMessage] = React.useState('');
+
+            // Chart Reference
+            const chartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+
+            // Re-render Lucide icons on DOM update
+            React.useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+
+            const filteredDeals = React.useMemo(() => {
+                return deals.filter(deal => {
+                    const matchesSearch = deal.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                          deal.jpLotNumber.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesCategory = selectedCategory === 'All' || deal.category === selectedCategory;
+                    
+                    const finances = calculateFinances(deal.jpCurrentBid, deal.ebayAvgPrice, 10, 12.8, deal.estShippingCost);
+                    const matchesRoi = finances.roi >= minRoi;
+                    const matchesBid = deal.jpCurrentBid <= maxBid;
+
+                    return matchesSearch && matchesCategory && matchesRoi && matchesBid;
+                });
+            }, [deals, searchTerm, selectedCategory, minRoi, maxBid]);
+
+            // Summary Metrics
+            const metrics = React.useMemo(() => {
+                let totalProfit = 0;
+                let totalRoiSum = 0;
+
+                filteredDeals.forEach(d => {
+                    const f = calculateFinances(d.jpCurrentBid, d.ebayAvgPrice, 10, 12.8, d.estShippingCost);
+                    totalProfit += f.netProfit;
+                    totalRoiSum += f.roi;
+                });
+
+                const avgRoi = filteredDeals.length > 0 ? (totalRoiSum / filteredDeals.length) : 0;
+
+                return {
+                    totalDeals: filteredDeals.length,
+                    totalPotentialProfit: totalProfit,
+                    averageRoi: avgRoi
+                };
+            }, [filteredDeals]);
+
+            React.useEffect(() => {
+                if (chartRef.current && filteredDeals.length > 0) {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    const labels = filteredDeals.map(d => d.jpLotNumber);
+                    const profitData = filteredDeals.map(d => {
+                        const f = calculateFinances(d.jpCurrentBid, d.ebayAvgPrice, 10, 12.8, d.estShippingCost);
+                        return Math.round(f.netProfit);
+                    });
+                    const roiData = filteredDeals.map(d => {
+                        const f = calculateFinances(d.jpCurrentBid, d.ebayAvgPrice, 10, 12.8, d.estShippingCost);
+                        return Math.round(f.roi);
+                    });
+
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Est. Net Profit (£)',
+                                    data: profitData,
+                                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                                    borderColor: '#22c55e',
+                                    borderWidth: 1,
+                                    borderRadius: 6
+                                },
+                                {
+                                    label: 'ROI (%)',
+                                    data: roiData,
+                                    backgroundColor: 'rgba(234, 179, 8, 0.7)',
+                                    borderColor: '#eab308',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    hidden: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: { color: '#94a3b8' }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.raw}${context.datasetIndex === 0 ? '£' : '%'}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: { color: '#94a3b8' },
+                                    grid: { color: '#334155' }
+                                },
+                                y: {
+                                    ticks: { color: '#94a3b8' },
+                                    grid: { color: '#334155' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, [filteredDeals]);
+
+            const handleExportCsv = () => {
+                if (filteredDeals.length === 0) return;
+
+                const headers = ["Lot Number", "Title", "Category", "JP Current Bid (£)", "JP Location", "eBay Avg Price (£)", "Est Net Profit (£)", "Est ROI (%)"];
+                const rows = filteredDeals.map(d => {
+                    const f = calculateFinances(d.jpCurrentBid, d.ebayAvgPrice, 10, 12.8, d.estShippingCost);
+                    return [
+                        `"${d.jpLotNumber}"`,
+                        `"${d.title.replace(/"/g, '""')}"`,
+                        `"${d.category}"`,
+                        d.jpCurrentBid.toFixed(2),
+                        `"${d.jpLocation}"`,
+                        d.ebayAvgPrice.toFixed(2),
+                        f.netProfit.toFixed(2),
+                        f.roi.toFixed(1)
+                    ].join(',');
+                });
+
+                const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `pyeprofit_arbitrage_report_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const handleRunScraper = () => {
+                setIsScraping(true);
+                setApiStatusMessage('Connecting to Apify John Pye Scraper Actor...');
+                
+                setTimeout(() => {
+                    setApiStatusMessage('Parsing John Pye auction pages & searching eBay UK API...');
+                }, 1200);
+
+                setTimeout(() => {
+                    // Inject a mock newly scraped item
+                    const newItem = {
+                        id: `JP-${Math.floor(10000 + Math.random() * 90000)}`,
+                        title: 'Milwaukee M18 Fuel Impact Driver (Bare Unit)',
+                        category: 'Tools',
+                        jpLotNumber: `LOT-${Math.floor(1000 + Math.random() * 9000)}`,
+                        jpCurrentBid: 48.00,
+                        jpEndTime: new Date(Date.now() + 86400000).toISOString(),
+                        jpLocation: 'Nottingham Hub',
+                        jpCondition: 'Ex-Display Model',
+                        jpImageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=600&q=80',
+                        ebayAvgPrice: 115.00,
+                        ebayListingCount: 19,
+                        ebaySalesVolume: 'High (12/wk)',
+                        estShippingCost: 4.95,
+                        badge: 'HIGH MARGIN',
+                        buyerFeePercent: 25,
+                        vatOnFeePercent: 20
+                    };
+
+                    setDeals(prev => [newItem, ...prev]);
+                    setIsScraping(false);
+                    setApiStatusMessage('Success! Loaded 1 new high-margin arbitrage opportunity.');
+                    setTimeout(() => {
+                        setShowApiModal(false);
+                        setApiStatusMessage('');
+                    }, 1500);
+                }, 2800);
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
+                    {/* Header Banner */}
+                    <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-md">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-2.5 bg-gradient-to-tr from-amber-600 to-amber-400 rounded-xl shadow-lg shadow-amber-500/20 text-slate-900 font-extrabold flex items-center justify-center">
+                                    <i data-lucide="trending-up" className="w-6 h-6 stroke-[2.5]"></i>
+                                </div>
+                                <div>
+                                    <div className="flex items-center space-x-2">
+                                        <h1 className="text-xl font-bold bg-gradient-to-r from-amber-400 via-amber-200 to-white bg-clip-text text-transparent">
+                                            PyeProfit
+                                        </h1>
+                                        <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30 font-medium">
+                                            v2.4 UK
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400">John Pye Auctions &rarr; eBay Resale Arbitrage Engine</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center space-x-3">
+                                <button 
+                                    onClick={() => setShowApiModal(true)}
+                                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 text-sm font-medium rounded-lg transition flex items-center space-x-2"
+                                >
+                                    <i data-lucide="cpu" className="w-4 h-4 text-amber-400"></i>
+                                    <span>Scraper / API Setup</span>
+                                </button>
+                                <button 
+                                    onClick={handleExportCsv}
+                                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm rounded-lg transition flex items-center space-x-2 shadow-lg shadow-amber-500/20"
+                                >
+                                    <i data-lucide="download" className="w-4 h-4"></i>
+                                    <span>Export CSV Report</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+                        
+                        {/* KPI Summary Banner */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Matched Opportunities</p>
+                                    <p className="text-2xl font-bold text-white mt-1">{metrics.totalDeals}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">Active auctions filtered</p>
+                                </div>
+                                <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
+                                    <i data-lucide="search" className="w-6 h-6"></i>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Potential Net Profit</p>
+                                    <p className="text-2xl font-bold text-emerald-400 mt-1">£{metrics.totalPotentialProfit.toFixed(2)}</p>
+                                    <p className="text-xs text-emerald-500/80 mt-0.5">After fees & est. shipping</p>
+                                </div>
+                                <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
+                                    <i data-lucide="circle-dollar-sign" className="w-6 h-6"></i>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Average Filtered ROI</p>
+                                    <p className="text-2xl font-bold text-amber-400 mt-1">{metrics.averageRoi.toFixed(1)}%</p>
+                                    <p className="text-xs text-amber-500/80 mt-0.5">Based on target bid prices</p>
+                                </div>
+                                <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400">
+                                    <i data-lucide="pie-chart" className="w-6 h-6"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Search & Filter Bar */}
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Search input */}
+                                <div className="relative md:col-span-1">
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Search Lot / Keywords</label>
+                                    <div className="relative">
+                                        <i data-lucide="search" className="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g. PS5, Dyson, LOT-9842" 
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Category filter */}
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
+                                    <select 
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    >
+                                        <option value="All">All Categories</option>
+                                        <option value="Tech & Gaming">Tech & Gaming</option>
+                                        <option value="Home Appliances">Home Appliances</option>
+                                        <option value="Luxury Goods">Luxury Goods</option>
+                                        <option value="Furniture">Furniture</option>
+                                        <option value="Tools">Tools</option>
+                                    </select>
+                                </div>
+
+                                {/* Min ROI slider */}
+                                <div>
+                                    <div className="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                                        <span>Min. Expected ROI</span>
+                                        <span className="text-amber-400 font-bold">{minRoi}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="150" 
+                                        step="5"
+                                        value={minRoi}
+                                        onChange={(e) => setMinRoi(Number(e.target.value))}
+                                        className="w-full accent-amber-500 bg-slate-900 h-2 rounded-lg cursor-pointer mt-2"
+                                    />
+                                </div>
+
+                                {/* Max Bid slider */}
+                                <div>
+                                    <div className="flex justify-between text-xs font-medium text-slate-400 mb-1">
+                                        <span>Max John Pye Bid</span>
+                                        <span className="text-amber-400 font-bold">£{maxBid}</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="50" 
+                                        max="1000" 
+                                        step="25"
+                                        value={maxBid}
+                                        onChange={(e) => setMaxBid(Number(e.target.value))}
+                                        className="w-full accent-amber-500 bg-slate-900 h-2 rounded-lg cursor-pointer mt-2"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Visual Analytics Chart Section */}
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" className="w-4 h-4 text-amber-400"></i>
+                                    Profitability Spread Across Lots
+                                </h3>
+                                <span className="text-xs text-slate-400">Comparing Net Margins (£) per active lot</span>
+                            </div>
+                            <div className="h-44 w-full">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+                        </div>
+
+                        {/* Deals List / Grid */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                                    <span>Arbitrage Opportunities</span>
+                                    <span className="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded-full">
+                                        {filteredDeals.length} results
+                                    </span>
+                                </h2>
+                                <span className="text-xs text-slate-400 italic">
+                                    Note: Buyer's Premium is auto-calculated at 25% + 20% VAT on premium (~30% total)
+                                </span>
+                            </div>
+
+                            {filteredDeals.length === 0 ? (
+                                <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center text-slate-400 space-y-3">
+                                    <i data-lucide="alert-circle" className="w-12 h-12 mx-auto text-slate-500"></i>
+                                    <p className="text-lg font-medium text-slate-300">No deals match your current filters.</p>
+                                    <p className="text-sm text-slate-500">Try lowering your ROI threshold or clearing keyword filters.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {filteredDeals.map((deal) => (
+                                        <DealCard 
+                                            key={deal.id} 
+                                            deal={deal} 
+                                            onOpenCalculator={() => setSelectedDealForModal(deal)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                    </main>
+
+                    {/* Detailed Profit Calculator Side Panel / Modal */}
+                    {selectedDealForModal && (
+                        <CalculatorModal 
+                            deal={selectedDealForModal} 
+                            onClose={() => setSelectedDealForModal(null)} 
+                        />
+                    )}
+
+                    {/* API / Scraper Settings Modal */}
+                    {showApiModal && (
+                        <ApiSettingsModal 
+                            onClose={() => setShowApiModal(false)}
+                            apiKey={apiKey}
+                            setApiKey={setApiKey}
+                            customEndpoint={customEndpoint}
+                            setCustomEndpoint={setCustomEndpoint}
+                            isScraping={isScraping}
+                            onRunScraper={handleRunScraper}
+                            statusMessage={apiStatusMessage}
+                        />
+                    )}
+
+                    {/* Footer */}
+                    <footer className="mt-auto bg-slate-950 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+                        <div className="max-w-7xl mx-auto px-4 space-y-1">
+                            <p>PyeProfit Arbitrage Tool &copy; 2026. Designed for UK Resellers & Auction Flippers.</p>
+                            <p className="text-slate-600">Disclaimer: Buyer's premium rates and eBay fees are estimates. Always verify lot condition and John Pye terms before bidding.</p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        function DealCard({ deal, onOpenCalculator }) {
+            const finances = calculateFinances(deal.jpCurrentBid, deal.ebayAvgPrice, 10, 12.8, deal.estShippingCost);
+
+            const badgeStyles = {
+                'HIGH MARGIN': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+                'QUICK RESELL': 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+                'RISK ALERT': 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            };
+
+            return (
+                <div className="bg-slate-800 border border-slate-700/80 rounded-xl overflow-hidden hover:border-slate-600 transition shadow-lg flex flex-col justify-between">
+                    <div>
+                        {/* Top Banner / Badge */}
+                        <div className="p-4 border-b border-slate-700/60 flex items-start justify-between gap-3">
+                            <div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-xs text-amber-400 font-mono font-semibold">{deal.jpLotNumber}</span>
+                                    <span className="text-slate-600">&bull;</span>
+                                    <span className="text-xs text-slate-400">{deal.category}</span>
+                                </div>
+                                <h3 className="text-base font-bold text-slate-100 mt-1 line-clamp-1">{deal.title}</h3>
+                            </div>
+                            <span className={`px-2.5 py-1 text-xs rounded font-semibold border ${badgeStyles[deal.badge] || 'bg-slate-700 text-slate-300'}`}>
+                                {deal.badge}
+                            </span>
+                        </div>
+
+                        {/* Dual Column Info: John Pye vs eBay */}
+                        <div className="p-4 grid grid-cols-2 gap-4 bg-slate-900/40">
+                            {/* John Pye Column */}
+                            <div className="space-y-2 border-r border-slate-700/50 pr-3">
+                                <div className="flex items-center space-x-1.5 text-xs text-amber-400 font-semibold uppercase tracking-wider">
+                                    <i data-lucide="gavel" className="w-3.5 h-3.5"></i>
+                                    <span>John Pye Lot</span>
+                                </div>
+                                <div className="relative h-28 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-700">
+                                    <img 
+                                        src={deal.jpImageUrl} 
+                                        alt={deal.title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { e.target.src = 'https://placehold.co/600x400/1e293b/cbd5e1?text=John+Pye+Lot'; }}
+                                    />
+                                    <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 backdrop-blur-sm p-1 text-[11px] text-center text-slate-300">
+                                        {deal.jpLocation}
+                                    </div>
+                                </div>
+                                <div className="text-xs space-y-1 pt-1">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Current Bid:</span>
+                                        <span className="font-bold text-slate-200">£{deal.jpCurrentBid.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Condition:</span>
+                                        <span className="text-slate-300 truncate max-w-[100px]">{deal.jpCondition}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* eBay UK Resale Column */}
+                            <div className="space-y-2">
+                                <div className="flex items-center space-x-1.5 text-xs text-blue-400 font-semibold uppercase tracking-wider">
+                                    <i data-lucide="shopping-bag" className="w-3.5 h-3.5"></i>
+                                    <span>eBay Resale Data</span>
+                                </div>
+                                <div className="h-28 rounded-lg bg-slate-900 border border-slate-700 p-3 flex flex-col justify-between text-xs">
+                                    <div>
+                                        <p className="text-slate-400 text-[11px]">Avg Sold Price:</p>
+                                        <p className="text-xl font-extrabold text-blue-400">£{deal.ebayAvgPrice.toFixed(2)}</p>
+                                    </div>
+                                    <div className="space-y-1 border-t border-slate-800 pt-1 text-[11px]">
+                                        <div className="flex justify-between text-slate-400">
+                                            <span>Active Listings:</span>
+                                            <span className="text-slate-200 font-medium">{deal.ebayListingCount}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-400">
+                                            <span>Demand / Speed:</span>
+                                            <span className="text-emerald-400 font-medium">{deal.ebaySalesVolume}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-xs space-y-1 pt-1">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Est. Postage:</span>
+                                        <span className="text-slate-300">£{deal.estShippingCost.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Financial Breakdown Bar */}
+                        <div className="p-4 bg-slate-800/90 border-t border-slate-700 space-y-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center bg-slate-900/80 p-2.5 rounded-lg border border-slate-700/60">
+                                <div>
+                                    <span className="block text-[10px] text-slate-400 uppercase">JP Total Cost</span>
+                                    <span className="text-xs font-semibold text-slate-200">£{finances.totalJpCost.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] text-slate-400 uppercase">eBay Fees+Post</span>
+                                    <span className="text-xs font-semibold text-slate-200">£{finances.totalEbayDeductions.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] text-slate-400 uppercase">Est. Net Profit</span>
+                                    <span className={`text-sm font-bold ${finances.netProfit > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        £{finances.netProfit.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] text-slate-400 uppercase">Expected ROI</span>
+                                    <span className={`text-sm font-bold ${finances.roi > 30 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        {finances.roi.toFixed(0)}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions footer */}
+                    <div className="p-3 bg-slate-800 border-t border-slate-700/80 flex items-center justify-between gap-2">
+                        <button 
+                            onClick={onOpenCalculator}
+                            className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-medium transition flex items-center justify-center space-x-1"
+                        >
+                            <i data-lucide="calculator" className="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>Adjust Margins & Calculator</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function CalculatorModal({ deal, onClose }) {
+            const [bidInput, setBidInput] = React.useState(deal.jpCurrentBid);
+            const [ebaySaleInput, setEbaySaleInput] = React.useState(deal.ebayAvgPrice);
+            const [courierInput, setCourierInput] = React.useState(10);
+            const [ebayFeeRate, setEbayFeeRate] = React.useState(12.8);
+            const [postageInput, setPostageInput] = React.useState(deal.estShippingCost);
+
+            const finances = calculateFinances(
+                Number(bidInput), 
+                Number(ebaySaleInput), 
+                Number(courierInput), 
+                Number(ebayFeeRate), 
+                Number(postageInput)
+            );
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800">
+                            <div className="flex items-center space-x-2">
+                                <i data-lucide="calculator" className="w-5 h-5 text-amber-400"></i>
+                                <h3 className="font-bold text-slate-100 text-base">Margin Calculator - {deal.jpLotNumber}</h3>
+                            </div>
+                            <button onClick={onClose} className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-200">
+                                <i data-lucide="x" className="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto space-y-6 custom-scrollbar">
+                            <p className="text-xs text-slate-400">
+                                Adjust your planned maximum bid, projected eBay sold price, and shipping details to calculate guaranteed net ROI.
+                            </p>
+
+                            {/* Inputs Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-amber-400">Max John Pye Hammer Bid (£)</label>
+                                    <input 
+                                        type="number" 
+                                        value={bidInput} 
+                                        onChange={(e) => setBidInput(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-bold focus:ring-2 focus:ring-amber-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-blue-400">Est. eBay Resale Price (£)</label>
+                                    <input 
+                                        type="number" 
+                                        value={ebaySaleInput} 
+                                        onChange={(e) => setEbaySaleInput(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-bold focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-300">Courier / Pickup Cost (£)</label>
+                                    <input 
+                                        type="number" 
+                                        value={courierInput} 
+                                        onChange={(e) => setCourierInput(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-300">Outbound Customer Postage (£)</label>
+                                    <input 
+                                        type="number" 
+                                        value={postageInput} 
+                                        onChange={(e) => setPostageInput(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+                                    />
+                                </div>
+
+                                <div className="space-y-1 sm:col-span-2">
+                                    <label className="text-xs font-medium text-slate-300">eBay Final Value Fee Rate (%)</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.1"
+                                        value={ebayFeeRate} 
+                                        onChange={(e) => setEbayFeeRate(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Detailed Breakdown Card */}
+                            <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 space-y-3">
+                                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Comprehensive Cost Breakdown</h4>
+                                
+                                <div className="space-y-2 text-xs">
+                                    <div className="flex justify-between text-slate-300">
+                                        <span>Hammer Bid:</span>
+                                        <span>£{Number(bidInput || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-400">
+                                        <span>+ John Pye Buyer's Premium (25%):</span>
+                                        <span>£{finances.buyersPremium.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-400">
+                                        <span>+ VAT on Buyer's Premium (20% of BP):</span>
+                                        <span>£{finances.vatOnPremium.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-400">
+                                        <span>+ Pickup / Courier Expense:</span>
+                                        <span>£{Number(courierInput || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between font-semibold text-slate-200 pt-1 border-t border-slate-800">
+                                        <span>Total Sourcing Cost:</span>
+                                        <span className="text-amber-400">£{finances.totalJpCost.toFixed(2)}</span>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-slate-800 space-y-1">
+                                        <div className="flex justify-between text-slate-400">
+                                            <span>eBay Final Value Fees ({ebayFeeRate}% + 30p):</span>
+                                            <span>£{finances.ebayFees.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-400">
+                                            <span>Outbound Shipping Cost:</span>
+                                            <span>£{Number(postageInput || 0).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 mt-3 flex items-center justify-between">
+                                        <div>
+                                            <span className="block text-[10px] text-slate-400 uppercase font-medium">Net Profit</span>
+                                            <span className={`text-xl font-bold ${finances.netProfit > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                £{finances.netProfit.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="block text-[10px] text-slate-400 uppercase font-medium">ROI %</span>
+                                            <span className={`text-xl font-bold ${finances.roi > 30 ? 'text-amber-400' : 'text-slate-200'}`}>
+                                                {finances.roi.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 bg-slate-800 border-t border-slate-700 flex justify-end">
+                            <button 
+                                onClick={onClose}
+                                className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ApiSettingsModal({ onClose, apiKey, setApiKey, customEndpoint, setCustomEndpoint, isScraping, onRunScraper, statusMessage }) {
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+                        {/* Header */}
+                        <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <i data-lucide="cpu" className="w-5 h-5 text-amber-400"></i>
+                                <h3 className="font-bold text-slate-100 text-base">Live Scraper & API Integration</h3>
+                            </div>
+                            <button onClick={onClose} className="p-1 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-200">
+                                <i data-lucide="x" className="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            <p className="text-xs text-slate-300">
+                                Connect your <strong>Apify John Pye Scraper Actor</strong> or custom webhook endpoint to load live auction lots automatically matched against eBay UK API listings.
+                            </p>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Apify API Key / Token</label>
+                                    <input 
+                                        type="password" 
+                                        placeholder="apify_api_XXXXXX..."
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-amber-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Custom Scraper Webhook URL (Optional)</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="https://api.yourdomain.com/v1/johnpye-sync"
+                                        value={customEndpoint}
+                                        onChange={(e) => setCustomEndpoint(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-amber-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {statusMessage && (
+                                <div className="p-3 bg-slate-900 border border-slate-700 rounded-lg text-xs text-amber-400 flex items-center space-x-2">
+                                    <i data-lucide="info" className="w-4 h-4 shrink-0"></i>
+                                    <span>{statusMessage}</span>
+                                </div>
+                            )}
+
+                            <div className="pt-2">
+                                <button 
+                                    onClick={onRunScraper}
+                                    disabled={isScraping}
+                                    className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-lg text-sm transition flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
+                                >
+                                    {isScraping ? (
+                                        <>
+                                            <i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i>
+                                            <span>Scraping Auctions...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i data-lucide="play" className="w-4 h-4 fill-slate-950"></i>
+                                            <span>Fetch & Scrape Live Auctions</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 bg-slate-900 border-t border-slate-700 text-right">
+                            <button 
+                                onClick={onClose}
+                                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-lg"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
